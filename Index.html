@@ -2,252 +2,287 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>Hilly U-Shape Road Accident Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hilly U-Shape Road Accident Prevention System</title>
   <style>
     body {
-      margin: 0;
-      padding: 20px;
-      background: #1a1a24;
-      color: #fff;
+      background-color: #1a1a1a;
+      color: #ffffff;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
+      margin: 0;
+      padding: 15px;
     }
     h2 {
-      margin: 0 0 10px 0;
+      color: #ffeb3b;
+      margin-bottom: 5px;
     }
     p {
-      color: #aaa;
-      margin-bottom: 15px;
+      color: #ddd;
+      font-size: 14px;
+      margin-top: 0;
     }
-    #canvas-container {
-      position: relative;
-      border: 3px solid #333;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    canvas {
+    #simCanvas {
+      background-color: #4CAF50;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
       display: block;
-      background: #2d5a27; /* पहाड़ी हरियाली */
+      margin: 0 auto;
     }
     .controls {
       margin-top: 15px;
-      display: flex;
-      gap: 12px;
     }
     button {
-      background: #e63946;
-      color: white;
-      border: none;
-      padding: 10px 20px;
+      padding: 10px 22px;
       font-size: 15px;
       font-weight: bold;
+      border: none;
       border-radius: 6px;
       cursor: pointer;
-      transition: background 0.2s;
+      margin: 5px 10px;
+      color: white;
+      transition: 0.2s;
     }
-    button:hover {
-      background: #c1121f;
+    .btn-run {
+      background-color: #ff5722;
+    }
+    .btn-run:hover {
+      background-color: #e64a19;
+    }
+    .btn-reset {
+      background-color: #03a9f4;
+    }
+    .btn-reset:hover {
+      background-color: #0288d1;
     }
     .legend {
       margin-top: 15px;
-      font-size: 14px;
+      font-size: 13px;
       display: flex;
-      gap: 20px;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
     }
-    .badge {
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .box {
+      width: 14px;
+      height: 14px;
       display: inline-block;
-      width: 12px;
-      height: 12px;
       border-radius: 2px;
-      margin-right: 6px;
     }
   </style>
 </head>
 <body>
 
-  <h2>पहाड़ी U-टर्न (Hairpin Bend) एक्सीडेंट सिमुलेशन</h2>
-  <p>ओवर-स्पीडिंग के कारण मोड़ पर सेंट्रीफ्यूगल फ़ोर्स से गाड़ी खाई में फिसलती है।</p>
+  <h2>पहाड़ी U-टर्न (Hairpin Bend) स्मार्ट अलर्ट सिमुलेशन</h2>
+  <p>दोनों तरफ से आ रही गाड़ियों के लिए ऑटोमैटिक लाइट ब्लिंकर और हॉर्न अलार्म सिस्टम</p>
 
-  <div id="canvas-container">
-    <canvas id="roadCanvas" width="700" height="500"></canvas>
-  </div>
+  <canvas id="simCanvas" width="600" height="420"></canvas>
 
   <div class="controls">
-    <button onclick="startSimulation()">Simulate Run</button>
-    <button onclick="resetSimulation()" style="background: #457b9d;">Reset</button>
+    <button class="btn-run" onclick="startSimulation()">Simulate Run</button>
+    <button class="btn-reset" onclick="resetSimulation()">Reset</button>
   </div>
 
   <div class="legend">
-    <span><span class="badge" style="background: #3a86ff;"></span>सुरक्षित कार (नियंत्रित गति)</span>
-    <span><span class="badge" style="background: #e63946;"></span>दुर्घटनाग्रस्त कार (ओवर-स्पीड)</span>
-    <span><span class="badge" style="background: #8b5a2b;"></span>खाई / Cliff</span>
+    <div class="legend-item"><span class="box" style="background:#2196F3;"></span> कार A (बाएं से)</div>
+    <div class="legend-item"><span class="box" style="background:#FF9800;"></span> कार B (दाएं से)</div>
+    <div class="legend-item"><span class="box" style="background:#f44336; border-radius:50%;"></span> अलर्ट लाइट / हॉर्न</div>
   </div>
 
   <script>
-    const canvas = document.getElementById("roadCanvas");
+    const canvas = document.getElementById("simCanvas");
     const ctx = canvas.getContext("2d");
 
-    let animationId;
+    // Road curve parameters
+    const centerX = 300;
+    const centerY = 140;
+    const radius = 170;
+    const roadWidth = 56;
+
     let isRunning = false;
+    let animId = null;
+    let alertActive = false;
 
-    // सिमुलेशन स्थिति
-    let blueCar = { t: 0, speed: 0.0035, crashed: false };
-    let redCar = { t: 0, speed: 0.0075, crashed: false, x: 0, y: 0, vx: 0, vy: 0 };
+    // Angles for Car 1 (Left to Right) and Car 2 (Right to Left)
+    let angleCar1 = Math.PI; // 180 deg (Left top)
+    let angleCar2 = 0;       // 0 deg (Right top)
+    const speed = 0.008;
 
-    // U-Turn Road Curve Points (Bézier / Spline representation)
-    function getRoadPoint(t) {
-      // U-turn path
-      const p0 = { x: 150, y: 50 };
-      const p1 = { x: 150, y: 380 };
-      const p2 = { x: 550, y: 380 };
-      const p3 = { x: 550, y: 50 };
+    // Web Audio Context for Horn / Buzzer Sound
+    let audioCtx = null;
+    let osc = null;
+    let gainNode = null;
 
-      // Cubic Bezier curve
-      const u = 1 - t;
-      const tt = t * t;
-      const uu = u * u;
-      const uuu = uu * u;
-      const ttt = tt * t;
-
-      const x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
-      const y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
-      return { x, y };
-    }
-
-    // ड्रॉ बैकग्राउंड और लैंडस्केप
-    function drawTerrain() {
-      // पहाड़ी ढलान और चट्टान (खाई)
-      ctx.fillStyle = "#8b5a2b"; // Cliff / Rock
-      ctx.beginPath();
-      ctx.arc(350, 480, 220, 0, Math.PI, true);
-      ctx.fill();
-
-      // आंतरिक पहाड़ी क्षेत्र
-      ctx.fillStyle = "#1e3f20";
-      ctx.beginPath();
-      ctx.arc(350, 200, 110, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // U-Road ड्रा करना
-    function drawRoad() {
-      // सड़क की चौड़ाई
-      ctx.lineWidth = 55;
-      ctx.strokeStyle = "#333339";
-      ctx.lineCap = "round";
-
-      ctx.beginPath();
-      for (let t = 0; t <= 1; t += 0.01) {
-        let pt = getRoadPoint(t);
-        if (t === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
+    }
+
+    function startHorn() {
+      if (!audioCtx || osc) return;
+      osc = audioCtx.createOscillator();
+      gainNode = audioCtx.createGain();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(650, audioCtx.currentTime); // Alert Horn Frequency
+
+      // Beep pulse modulation
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      osc.start();
+    }
+
+    function stopHorn() {
+      if (osc) {
+        try {
+          osc.stop();
+          osc.disconnect();
+        } catch(e) {}
+        osc = null;
+      }
+    }
+
+    function drawScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Inner green hill
+      ctx.fillStyle = "#388E3C";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Valley / Cliff bottom base
+      ctx.fillStyle = "#E67E22";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY + 80, 160, 0, Math.PI);
+      ctx.fill();
+
+      // Road Surface (Dark Grey)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI);
+      ctx.lineWidth = roadWidth;
+      ctx.strokeStyle = "#555555";
       ctx.stroke();
 
-      // डिवाइडर लाइन (सफेद बिंदीदार)
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#ffffff";
-      ctx.setLineDash([8, 8]);
+      // Road Center Dividing Line (Dashed)
       ctx.beginPath();
-      for (let t = 0; t <= 1; t += 0.01) {
-        let pt = getRoadPoint(t);
-        if (t === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
-      }
+      ctx.setLineDash([12, 10]);
+      ctx.arc(centerX, centerY, radius, 0, Math.PI);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffffff";
       ctx.stroke();
       ctx.setLineDash([]); // Reset dash
 
-      // चेतावनी साइन (Hairpin Bend)
-      ctx.fillStyle = "#ffb703";
-      ctx.beginPath();
-      ctx.arc(350, 435, 14, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#000";
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillText("⚠️", 342, 440);
-    }
+      // Calculate Car Positions along lanes
+      // Lane 1: Inner lane (radius - 14)
+      const car1R = radius - 14;
+      const c1X = centerX + car1R * Math.cos(angleCar1);
+      const c1Y = centerY + car1R * Math.sin(angleCar1);
 
-    // कार ड्रा करना
-    function drawVehicle(x, y, color, angle, text = "") {
+      // Lane 2: Outer lane (radius + 14)
+      const car2R = radius + 14;
+      const c2X = centerX + car2R * Math.cos(angleCar2);
+      const c2Y = centerY + car2R * Math.sin(angleCar2);
+
+      // Draw Car A (Blue)
       ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-
-      // गाड़ी का बेस
-      ctx.fillStyle = color;
-      ctx.fillRect(-12, -7, 24, 14);
-
-      // विंडशील्ड
-      ctx.fillStyle = "#caf0f8";
-      ctx.fillRect(0, -5, 6, 10);
-
+      ctx.translate(c1X, c1Y);
+      ctx.rotate(angleCar1 + Math.PI / 2);
+      ctx.fillStyle = "#2196F3";
+      ctx.fillRect(-8, -14, 16, 28);
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillRect(-6, 12, 4, 3);
+      ctx.fillRect(2, 12, 4, 3);
       ctx.restore();
 
-      if (text) {
-        ctx.fillStyle = "#ff4d4d";
-        ctx.font = "bold 13px sans-serif";
-        ctx.fillText(text, x - 25, y - 16);
-      }
-    }
+      // Draw Car B (Orange)
+      ctx.save();
+      ctx.translate(c2X, c2Y);
+      ctx.rotate(angleCar2 - Math.PI / 2);
+      ctx.fillStyle = "#FF9800";
+      ctx.fillRect(-8, -14, 16, 28);
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillRect(-6, 12, 4, 3);
+      ctx.fillRect(2, 12, 4, 3);
+      ctx.restore();
 
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Check alert condition (dono curve me aamne-saamne approach kar rahe hain)
+      const dist = Math.abs(angleCar1 - angleCar2);
+      alertActive = (dist < 1.1 && angleCar1 < Math.PI - 0.2 && angleCar2 > 0.2);
 
-      drawTerrain();
-      drawRoad();
+      // Warning Light & Horn Post (Bend Center me)
+      const poleX = centerX;
+      const poleY = centerY + radius + 30;
 
-      // 1. सुरक्षित नीली कार
-      if (blueCar.t <= 1) {
-        let pt = getRoadPoint(blueCar.t);
-        let nextPt = getRoadPoint(Math.min(1, blueCar.t + 0.01));
-        let angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
-        drawVehicle(pt.x - 8, pt.y, "#3a86ff", angle);
-      }
+      // Pole Base
+      ctx.fillStyle = "#333";
+      ctx.fillRect(poleX - 4, poleY, 8, 20);
 
-      // 2. लाल कार (ओवर-स्पीड एक्सीडेंट)
-      if (!redCar.crashed) {
-        let pt = getRoadPoint(redCar.t);
-        let nextPt = getRoadPoint(Math.min(1, redCar.t + 0.01));
-        let angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
+      if (alertActive && isRunning) {
+        // Blinking Red Light
+        const blink = Math.floor(Date.now() / 150) % 2 === 0;
+        ctx.fillStyle = blink ? "#FF0000" : "#550000";
 
-        // तीव्र मोड़ पर (t > 0.46) टर्न न ले पाने के कारण खाई की ओर फिसलना
-        if (redCar.t >= 0.46) {
-          redCar.crashed = true;
-          redCar.x = pt.x;
-          redCar.y = pt.y;
-          // स्पर्शरेखीय दिशा (Tangential momentum) में बाहर निकल जाना
-          redCar.vx = (nextPt.x - pt.x) * 1.5;
-          redCar.vy = Math.abs(nextPt.y - pt.y) * 2.2 + 2; 
+        // Light Glow
+        if (blink) {
+          ctx.beginPath();
+          ctx.arc(poleX, poleY, 26, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 0, 0, 0.35)";
+          ctx.fill();
+
+          // Sound trigger
+          startHorn();
         } else {
-          drawVehicle(pt.x + 8, pt.y, "#e63946", angle);
+          stopHorn();
         }
-      } else {
-        // खाई में गिरना
-        redCar.x += redCar.vx;
-        redCar.y += redCar.vy;
-        redCar.vy += 0.08; // ढलान पर गुरुत्वाकर्षण
 
-        drawVehicle(redCar.x, redCar.y, "#e63946", Math.PI / 4, "CRASH!");
+        // Light bulb
+        ctx.beginPath();
+        ctx.arc(poleX, poleY, 14, 0, Math.PI * 2);
+        ctx.fillStyle = blink ? "#FF1744" : "#7f0000";
+        ctx.fill();
+
+        // Warning Text
+        ctx.fillStyle = "#ff1744";
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillText("⚠️ HORN ACTIVE: SLOW DOWN!", centerX, poleY + 40);
+      } else {
+        // Normal Green/Idle Light
+        stopHorn();
+        ctx.beginPath();
+        ctx.arc(poleX, poleY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "#4CAF50";
+        ctx.fill();
       }
     }
 
     function update() {
       if (!isRunning) return;
 
-      if (blueCar.t < 1) blueCar.t += blueCar.speed;
-
-      if (!redCar.crashed) {
-        redCar.t += redCar.speed;
+      // Car 1 moves forward (Clockwise: PI to ~0)
+      if (angleCar1 > 0.3) {
+        angleCar1 -= speed;
       }
 
-      render();
-      animationId = requestAnimationFrame(update);
+      // Car 2 moves forward (Counter-Clockwise: 0 to ~PI)
+      if (angleCar2 < Math.PI - 0.3) {
+        angleCar2 += speed;
+      }
+
+      drawScene();
+      animId = requestAnimationFrame(update);
     }
 
     function startSimulation() {
+      initAudio();
       if (!isRunning) {
         isRunning = true;
         update();
@@ -256,14 +291,16 @@
 
     function resetSimulation() {
       isRunning = false;
-      cancelAnimationFrame(animationId);
-      blueCar = { t: 0, speed: 0.0035, crashed: false };
-      redCar = { t: 0, speed: 0.0075, crashed: false, x: 0, y: 0, vx: 0, vy: 0 };
-      render();
+      cancelAnimationFrame(animId);
+      stopHorn();
+      angleCar1 = Math.PI;
+      angleCar2 = 0;
+      alertActive = false;
+      drawScene();
     }
 
-    // पहला फ्रेम रेंडर करें
-    render();
+    // Initial Render
+    drawScene();
   </script>
 </body>
 </html>

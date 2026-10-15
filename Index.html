@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pahadi Hairpin Bend - Smart Alert Simulation</title>
+  <title>Pahadi Hairpin Bend - Dual Side Red & Green Lights</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -33,7 +33,7 @@
       border: 3px solid #333;
     }
     #simCanvas {
-      background-color: #2e1a0c; /* Natural earth background based on 3D prototype */
+      background-color: #2e1a0c;
       display: block;
     }
     .controls {
@@ -92,7 +92,7 @@
 <body>
 
   <h2>पहाड़ी U-टर्न (Hairpin Bend) स्मार्ट अलर्ट सिमुलेशन</h2>
-  <p>आपके 3D प्रोटोटाइप मॉडल पर आधारित - ऑटोमैटिक सेंसर, LED लाइट और हॉर्न सिस्टम</p>
+  <p>दोनों साइड रोड पर रेड और ग्रीन सिग्नल लाइट्स + ऑटोमैटिक हॉर्न अलर्ट</p>
 
   <div id="canvasContainer">
     <canvas id="simCanvas" width="500" height="700"></canvas>
@@ -104,10 +104,8 @@
   </div>
 
   <div class="legend">
-    <div class="legend-item"><span class="box" style="background:#00bcd4;"></span> कार A (बाएं से)</div>
-    <div class="legend-item"><span class="box" style="background:#ff9800;"></span> कार B (दाएं से)</div>
-    <div class="legend-item"><span class="box" style="background:#ff1744; border-radius:50%;"></span> अलर्ट LED लाइट (Blinking)</div>
-    <div class="legend-item"><span class="box" style="background:#9c27b0;"></span> 9V बैटरी / सेंसिंग सर्किट</div>
+    <div class="legend-item"><span class="box" style="background:#00e676; border-radius:50%;"></span> ग्रीन लाइट: रास्ता साफ (Safe)</div>
+    <div class="legend-item"><span class="box" style="background:#ff1744; border-radius:50%;"></span> रेड लाइट + हॉर्न: खतरा / गाड़ी सामने है</div>
   </div>
 
   <script>
@@ -118,13 +116,11 @@
     let animId = null;
     let alertActive = false;
 
-    // Movement path parameters for curved tracking
-    // Using bezier & arc curves to exactly mimic the 3D prototype road shape
-    let car1Progress = 0; // Starts from bottom-left up, then turns right & down
-    let car2Progress = 0; // Starts from bottom-right up, turns left & down
+    let car1Progress = 0; 
+    let car2Progress = 0; 
     const speed = 0.0035;
 
-    // Audio context for the alert buzzer
+    // Web Audio Context for Horn Sound
     let audioCtx = null;
     let osc = null;
     let gainNode = null;
@@ -141,7 +137,6 @@
       gainNode = audioCtx.createGain();
 
       osc.type = "sawtooth";
-      // Natural electronic buzzer sound matching your prototype setup
       osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
       gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
 
@@ -160,52 +155,41 @@
       }
     }
 
-    // Mathematical calculations for the customized narrow U-turn shape
     function getRoadPath(progress, isLeftCar) {
-      // Return {x, y, angle} at given progress (0 to 1)
       let x, y, angle;
       if (isLeftCar) {
-        // Car A (Left Lane) climbs up, goes around inner/center bend
         if (progress < 0.4) {
-          // Bottom straight left-center up (x ~ 170)
           const t = progress / 0.4;
           x = 160;
-          y = 700 - (t * 430); // 700 to 270
+          y = 700 - (t * 430);
           angle = -Math.PI / 2;
         } else if (progress < 0.75) {
-          // Inner curve bend
           const t = (progress - 0.4) / 0.35;
           const r = 90;
           const centerX = 250;
           const centerY = 270;
-          const startAngle = Math.PI;
-          const endAngle = 0;
-          const currAngle = startAngle - (t * Math.PI);
+          const currAngle = Math.PI - (t * Math.PI);
           x = centerX + r * Math.cos(currAngle);
           y = centerY + r * Math.sin(currAngle);
           angle = currAngle - Math.PI / 2;
         } else {
-          // Exit down right-center
           const t = (progress - 0.75) / 0.25;
           x = 340;
           y = 270 + (t * 430);
           angle = Math.PI / 2;
         }
       } else {
-        // Car B (Right Lane) climbs up from bottom-right, then curves over 
         if (progress < 0.4) {
           const t = progress / 0.4;
           x = 410;
-          y = 700 - (t * 430); // 700 to 270
+          y = 700 - (t * 430);
           angle = -Math.PI / 2;
         } else if (progress < 0.75) {
           const t = (progress - 0.4) / 0.35;
           const r = 160;
           const centerX = 250;
           const centerY = 270;
-          const startAngle = 0;
-          const endAngle = Math.PI;
-          const currAngle = startAngle + (t * Math.PI);
+          const currAngle = t * Math.PI;
           x = centerX + r * Math.cos(currAngle);
           y = centerY + r * Math.sin(currAngle);
           angle = currAngle + Math.PI / 2;
@@ -219,270 +203,199 @@
       return { x, y, angle };
     }
 
-    function drawPrototypeModel() {
-      // 1. Draw Rough 3D-Like Muddy Hill Textured Background
-      ctx.fillStyle = "#3a200d"; // Dark brown earthy background
+    // Function to draw Dual Light Post (Red + Green light setup)
+    function drawDualLightPole(x, y, isRedActive, blinkState) {
+      // Pole stand
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x - 3, y, 6, 45);
+
+      // Light housing box
+      ctx.fillStyle = "#111";
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x - 14, y - 48, 28, 52, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      // Top Bulb: RED LIGHT
+      ctx.beginPath();
+      ctx.arc(x, y - 35, 8, 0, Math.PI * 2);
+      if (isRedActive && blinkState) {
+        ctx.fillStyle = "#ff1744"; // Glow Red
+        ctx.shadowColor = "#ff1744";
+        ctx.shadowBlur = 15;
+      } else {
+        ctx.fillStyle = "#4a0000"; // Off/Dim Red
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Bottom Bulb: GREEN LIGHT
+      ctx.beginPath();
+      ctx.arc(x, y - 12, 8, 0, Math.PI * 2);
+      if (!isRedActive) {
+        ctx.fillStyle = "#00e676"; // Bright Green
+        ctx.shadowColor = "#00e676";
+        ctx.shadowBlur = 12;
+      } else {
+        ctx.fillStyle = "#003311"; // Off/Dim Green
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function drawScene() {
+      // Muddy ground
+      ctx.fillStyle = "#3a200d";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Draw Left and Right Mountain Ranges (Wrinkled texture effect based on prototype image_4.png)
-      // Left Hillside
+      // Hill shapes
       ctx.fillStyle = "#5c3317";
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(130, 0);
-      ctx.lineTo(100, 300);
-      ctx.lineTo(40, 500);
-      ctx.lineTo(0, 550);
+      ctx.moveTo(0, 0); ctx.lineTo(130, 0); ctx.lineTo(100, 300); ctx.lineTo(0, 550);
       ctx.fill();
 
-      // Right Hillside
       ctx.beginPath();
-      ctx.moveTo(500, 0);
-      ctx.lineTo(370, 0);
-      ctx.lineTo(400, 300);
-      ctx.lineTo(460, 500);
-      ctx.lineTo(500, 550);
+      ctx.moveTo(500, 0); ctx.lineTo(370, 0); ctx.lineTo(400, 300); ctx.lineTo(500, 550);
       ctx.fill();
 
-      // Middle Hillside divider
+      // Middle Hill
       ctx.fillStyle = "#4a270f";
       ctx.beginPath();
       ctx.moveTo(215, 270);
       ctx.quadraticCurveTo(250, 160, 285, 270);
-      ctx.lineTo(285, 600);
-      ctx.lineTo(215, 600);
+      ctx.lineTo(285, 600); ctx.lineTo(215, 600);
       ctx.closePath();
       ctx.fill();
 
-      // Draw Artificial Yellow/Green Bush Sprays on mountain
-      const foliagePositions = [
-        [30, 80], [90, 100], [20, 240], [250, 120], [250, 330],
-        [430, 90], [470, 260], [420, 420], [80, 410], [50, 680], [450, 680]
-      ];
-      foliagePositions.forEach(pos => {
-        ctx.fillStyle = "#1e4d2b"; // dark green base
-        ctx.beginPath();
-        ctx.arc(pos[0], pos[1], 15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = "#ffd54f"; // yellow bush highlights
-        ctx.beginPath();
-        ctx.arc(pos[0] + 5, pos[1] - 3, 7, 0, Math.PI*2);
-        ctx.fill();
+      // Foliage/Bushes
+      const foliage = [[30, 80], [90, 100], [250, 120], [430, 90], [470, 260], [80, 410], [420, 420]];
+      foliage.forEach(pos => {
+        ctx.fillStyle = "#1e4d2b";
+        ctx.beginPath(); ctx.arc(pos[0], pos[1], 15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#ffd54f";
+        ctx.beginPath(); ctx.arc(pos[0] + 5, pos[1] - 3, 7, 0, Math.PI*2); ctx.fill();
       });
 
-      // 3. Draw The U-Turn Black Road
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#1b1b1b"; // Jet Black Road
-
-      // Draw Main U-Curve
-      ctx.beginPath();
-      ctx.moveTo(90, 700);
-      ctx.lineTo(90, 270);
-      ctx.arc(250, 270, 160, Math.PI, 0, false);
-      ctx.lineTo(410, 270);
-      ctx.lineTo(410, 700);
+      // Road Surface
+      ctx.strokeStyle = "#1b1b1b";
       ctx.lineWidth = 100;
-      ctx.stroke();
-
-      // Fill in inner road overlapping details & merge
       ctx.beginPath();
-      ctx.moveTo(160, 700);
-      ctx.lineTo(160, 270);
-      ctx.arc(250, 270, 90, Math.PI, 0, false);
-      ctx.lineTo(340, 270);
-      ctx.lineTo(340, 700);
-      ctx.lineWidth = 60;
+      ctx.moveTo(90, 700); ctx.lineTo(90, 270);
+      ctx.arc(250, 270, 160, Math.PI, 0, false);
+      ctx.lineTo(410, 270); ctx.lineTo(410, 700);
       ctx.stroke();
 
-      // 4. Zebra Painted Borders (Black and White border barrier on the curves, mimicking pattern in image_4.png)
+      ctx.lineWidth = 60;
+      ctx.beginPath();
+      ctx.moveTo(160, 700); ctx.lineTo(160, 270);
+      ctx.arc(250, 270, 90, Math.PI, 0, false);
+      ctx.lineTo(340, 270); ctx.lineTo(340, 700);
+      ctx.stroke();
+
+      // Zebra Borders
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 6;
       ctx.setLineDash([12, 12]);
-      
-      // Left outer edge
       ctx.beginPath();
       ctx.arc(250, 270, 205, Math.PI, 0, false);
       ctx.stroke();
 
-      // Inner center dividing edges
       ctx.strokeStyle = "#000000";
       ctx.beginPath();
       ctx.arc(250, 270, 52, Math.PI, 0, false);
       ctx.stroke();
-
-      // Reset dashed lines
       ctx.setLineDash([]);
 
-      // 5. Road Lane Dividing Lines (Broken white)
+      // Road Lane Dividing Lines
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;
       ctx.setLineDash([18, 18]);
       ctx.beginPath();
-      ctx.moveTo(160, 700);
-      ctx.lineTo(160, 270);
+      ctx.moveTo(160, 700); ctx.lineTo(160, 270);
       ctx.arc(250, 270, 90, Math.PI, 0, false);
-      ctx.lineTo(340, 270);
-      ctx.lineTo(340, 700);
+      ctx.lineTo(340, 270); ctx.lineTo(340, 700);
       ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(250, 700);
-      ctx.lineTo(250, 480);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(340, 700);
-      ctx.lineTo(340, 480);
-      ctx.stroke();
-
       ctx.setLineDash([]);
 
-      // 6. Real prototype hardware (Batteries, wires and sensors based on bottom-left)
-      // 9V Battery Packs (Grey-blue rectangle with terminal pins)
+      // 9V Battery Packs on Bottom Left
       const batX = 110, batY = 600;
       for (let i = 0; i < 3; i++) {
         const offset = i * 28;
-        ctx.fillStyle = "#37474f"; // Battery Body
+        ctx.fillStyle = "#37474f";
         ctx.fillRect(batX + offset, batY, 22, 38);
-        ctx.fillStyle = "#eceff1"; // Metal terminal
-        ctx.fillRect(batX + offset + 3, batY - 4, 6, 4);
         ctx.fillStyle = "#eceff1";
+        ctx.fillRect(batX + offset + 3, batY - 4, 6, 4);
         ctx.fillRect(batX + offset + 13, batY - 4, 6, 4);
-        // "HYW" label like the real image
         ctx.fillStyle = "#ffffff";
         ctx.font = "8px sans-serif";
         ctx.fillText("HYW", batX + offset + 2, batY + 16);
-        ctx.fillStyle = "#e53935";
-        ctx.fillRect(batX + offset + 2, batY + 24, 18, 5);
       }
 
-      // Sensing Circuit / Breadboard wiring mesh
-      ctx.beginPath();
-      ctx.strokeStyle = "#e53935"; // Red Wires
-      ctx.lineWidth = 1.5;
-      ctx.moveTo(180, 610);
-      ctx.quadraticCurveTo(200, 600, 215, 615);
-      ctx.quadraticCurveTo(230, 610, 245, 620);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.strokeStyle = "#1e88e5"; // Blue Wires
-      ctx.lineWidth = 1.5;
-      ctx.moveTo(185, 625);
-      ctx.quadraticCurveTo(210, 650, 235, 625);
-      ctx.stroke();
-
-      // Yellow/Black Cylindrical Roadside Sensor Poles (Like image_4.png top bend)
-      const poleLeft = { x: 180, y: 220 };
-      const poleRight = { x: 320, y: 220 };
-
-      // Left Sensor Pole
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(poleLeft.x - 5, poleLeft.y - 12, 10, 28);
-      ctx.fillStyle = "#ffeb3b"; // Yellow Reflectors
-      ctx.fillRect(poleLeft.x - 5, poleLeft.y - 4, 10, 6);
-      ctx.fillRect(poleLeft.x - 5, poleLeft.y + 8, 10, 4);
-
-      // Right Sensor Pole
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(poleRight.x - 5, poleRight.y - 12, 10, 28);
-      ctx.fillStyle = "#ffeb3b";
-      ctx.fillRect(poleRight.x - 5, poleRight.y - 4, 10, 6);
-      ctx.fillRect(poleRight.x - 5, poleRight.y + 8, 10, 4);
-
-
-      // Calculate & Draw Car Positions
+      // Car Positions
       const carA = getRoadPath(car1Progress, true);
       const carB = getRoadPath(car2Progress, false);
 
-      // Draw Car A (Left/Blue Side)
+      // Car A (Cyan/Blue)
       ctx.save();
       ctx.translate(carA.x, carA.y);
       ctx.rotate(carA.angle);
-      ctx.fillStyle = "#00bcd4"; // Cyan/Blue
+      ctx.fillStyle = "#00bcd4";
       ctx.fillRect(-10, -18, 20, 36);
-      ctx.fillStyle = "#ffffff"; // Windshield
+      ctx.fillStyle = "#fff";
       ctx.fillRect(-8, -12, 16, 6);
-      ctx.fillStyle = "#ffeb3b"; // Headlights
-      ctx.fillRect(-8, -19, 4, 2);
-      ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Draw Car B (Right/Orange Side)
+      // Car B (Orange)
       ctx.save();
       ctx.translate(carB.x, carB.y);
       ctx.rotate(carB.angle);
-      ctx.fillStyle = "#ff9800"; // Orange
+      ctx.fillStyle = "#ff9800";
       ctx.fillRect(-10, -18, 20, 36);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#fff";
       ctx.fillRect(-8, -12, 16, 6);
-      ctx.fillStyle = "#ffeb3b";
-      ctx.fillRect(-8, -19, 4, 2);
-      ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Trigger safety sensor logic when both cars approach the top blind curves (U-shape apex)
+      // Alert Logic: Jab dono cars curve ke pass aati hain
       alertActive = (car1Progress > 0.28 && car1Progress < 0.8 && car2Progress > 0.28 && car2Progress < 0.8);
+      const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
-      // Alert Warning Tower (Active when Alert Zone is triggered)
-      const warningPoleX = 250;
-      const warningPoleY = 190;
-
-      // Pole structure
-      ctx.fillStyle = "#555";
-      ctx.fillRect(warningPoleX - 4, warningPoleY, 8, 45);
-
+      // Sound trigger
       if (alertActive && isRunning) {
-        // Red Pulsing High-alert warning light
-        const blink = Math.floor(Date.now() / 150) % 2 === 0;
-        
-        if (blink) {
-          // Inner glowing light
-          ctx.beginPath();
-          ctx.arc(warningPoleX, warningPoleY, 28, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 23, 68, 0.35)";
-          ctx.fill();
-
-          startHorn();
-        } else {
-          stopHorn();
-        }
-
-        ctx.beginPath();
-        ctx.arc(warningPoleX, warningPoleY, 15, 0, Math.PI * 2);
-        ctx.fillStyle = blink ? "#ff1744" : "#4a0000";
-        ctx.fill();
-
-        // ⚠️ ALARM SOUND & HIGH LIGHT alert prompt overlay text
-        ctx.fillStyle = "#ff1744";
-        ctx.font = "bold 15px 'Segoe UI'";
-        ctx.fillText("🚨 ALERT: HORN ACTIVE 🔊", warningPoleX, warningPoleY - 35);
+        if (blink) startHorn();
+        else stopHorn();
       } else {
         stopHorn();
-        ctx.beginPath();
-        ctx.arc(warningPoleX, warningPoleY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "#4caf50"; // Idle/Safe Green state
-        ctx.fill();
+      }
+
+      // DONO SIDE LIGHTS:
+      // Left Road Light Pole (X: 30, Y: 290)
+      drawDualLightPole(35, 290, alertActive && isRunning, blink);
+
+      // Right Road Light Pole (X: 465, Y: 290)
+      drawDualLightPole(465, 290, alertActive && isRunning, blink);
+
+      // Alert banner message
+      if (alertActive && isRunning) {
+        ctx.fillStyle = "#ff1744";
+        ctx.font = "bold 15px 'Segoe UI'";
+        ctx.fillText("🚨 RED LIGHT & HORN ON: STOP / SLOW DOWN! 🚨", 250, 50);
       }
     }
 
     function update() {
       if (!isRunning) return;
 
-      // Update both vehicle progress loops
-      if (car1Progress < 1.0) {
-        car1Progress += speed;
-      } else {
-        car1Progress = 0; // restarts after exit loop
-      }
+      if (car1Progress < 1.0) car1Progress += speed;
+      else car1Progress = 0;
 
-      if (car2Progress < 1.0) {
-        car2Progress += speed;
-      } else {
-        car2Progress = 0;
-      }
+      if (car2Progress < 1.0) car2Progress += speed;
+      else car2Progress = 0;
 
-      drawPrototypeModel();
+      drawScene();
       animId = requestAnimationFrame(update);
     }
 
@@ -501,11 +414,10 @@
       car1Progress = 0;
       car2Progress = 0;
       alertActive = false;
-      drawPrototypeModel();
+      drawScene();
     }
 
-    // Initial first-render state
-    drawPrototypeModel();
+    drawScene();
   </script>
 </body>
 </html>

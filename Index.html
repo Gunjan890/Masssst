@@ -1,126 +1,153 @@
-<!DOCTYPE html>
+                <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pahadi Hairpin Bend - Dual Side Red & Green Lights</title>
+  <title>Hairpin Bend Manual Car Control Simulation</title>
   <style>
     body {
-      background-color: #1a1a1a;
+      background-color: #121212;
       color: #ffffff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       text-align: center;
       margin: 0;
-      padding: 15px;
+      padding: 10px;
     }
     h2 {
       color: #ffeb3b;
-      margin-bottom: 5px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      font-size: 19px;
+      margin: 5px 0;
     }
     p {
-      color: #ccc;
-      font-size: 14px;
-      margin-top: 0;
-      margin-bottom: 20px;
-    }
-    #canvasContainer {
-      position: relative;
-      display: inline-block;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-      border-radius: 15px;
-      overflow: hidden;
-      border: 3px solid #333;
+      color: #bbb;
+      font-size: 13px;
+      margin: 0 0 10px 0;
     }
     #simCanvas {
-      background-color: #2e1a0c;
+      background-color: #2b1810;
+      border-radius: 12px;
       display: block;
+      margin: 0 auto;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.7);
+      max-width: 100%;
+      height: auto;
     }
-    .controls {
-      margin-top: 20px;
+    .controller-box {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 12px;
+      max-width: 440px;
+      margin: 12px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
-    button {
-      padding: 12px 28px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 5px 10px;
-      color: white;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .btn-run {
-      background: linear-gradient(135deg, #ff5722, #e64a19);
-    }
-    .btn-run:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(255, 87, 34, 0.4);
-    }
-    .btn-reset {
-      background: linear-gradient(135deg, #03a9f4, #0288d1);
-    }
-    .btn-reset:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(3, 169, 244, 0.4);
-    }
-    .legend {
-      margin-top: 20px;
-      font-size: 13px;
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    .legend-item {
+    .slider-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.05);
-      padding: 6px 12px;
-      border-radius: 20px;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 14px;
+      font-weight: bold;
     }
-    .box {
-      width: 14px;
-      height: 14px;
+    input[type=range] {
+      flex: 1;
+      margin: 0 12px;
+      height: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .c1-label { color: #00e5ff; }
+    .c2-label { color: #ff9800; }
+    .btn-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+    }
+    .btn-auto { background: #4caf50; }
+    .btn-reset { background: #f44336; }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       display: inline-block;
-      border-radius: 3px;
+      margin-right: 5px;
     }
   </style>
 </head>
 <body>
 
-  <h2>पहाड़ी U-टर्न (Hairpin Bend) स्मार्ट अलर्ट सिमुलेशन</h2>
-  <p>दोनों साइड रोड पर रेड और ग्रीन सिग्नल लाइट्स + ऑटोमैटिक हॉर्न अलर्ट</p>
+  <h2>पहाड़ी U-टर्न (Hairpin Bend) सिमुलेशन</h2>
+  <p>नीचे दिए गए स्लाइडर्स से दोनों कार को खुद चलाकर टेस्ट करें</p>
 
-  <div id="canvasContainer">
-    <canvas id="simCanvas" width="500" height="700"></canvas>
-  </div>
+  <canvas id="simCanvas" width="460" height="640"></canvas>
 
-  <div class="controls">
-    <button class="btn-run" onclick="startSimulation()">Simulate Run</button>
-    <button class="btn-reset" onclick="resetSimulation()">Reset</button>
+  <div class="controller-box">
+    <!-- Manual Controller for Car A -->
+    <div class="slider-row">
+      <span class="c1-label">कार A (बाएं)</span>
+      <input type="range" id="car1Slider" min="0" max="100" value="10" oninput="manualUpdate()">
+      <span id="c1Val">10%</span>
+    </div>
+
+    <!-- Manual Controller for Car B -->
+    <div class="slider-row">
+      <span class="c2-label">कार B (दाएं)</span>
+      <input type="range" id="car2Slider" min="0" max="100" value="10" oninput="manualUpdate()">
+      <span id="c2Val">10%</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-auto" id="autoBtn" onclick="toggleAuto()">Auto Run</button>
+      <button class="btn-reset" onclick="resetControls()">Reset</button>
+    </div>
   </div>
 
   <div class="legend">
-    <div class="legend-item"><span class="box" style="background:#00e676; border-radius:50%;"></span> ग्रीन लाइट: रास्ता साफ (Safe)</div>
-    <div class="legend-item"><span class="box" style="background:#ff1744; border-radius:50%;"></span> रेड लाइट + हॉर्न: खतरा / गाड़ी सामने है</div>
+    <div><span class="dot" style="background:#00e676;"></span>ग्रीन लाइट: रास्ता सुरक्षित</div>
+    <div><span class="dot" style="background:#ff1744;"></span>रेड लाइट + हॉर्न: मोड पर खतरा</div>
   </div>
 
   <script>
     const canvas = document.getElementById("simCanvas");
     const ctx = canvas.getContext("2d");
 
-    let isRunning = false;
-    let animId = null;
-    let alertActive = false;
+    const slider1 = document.getElementById("car1Slider");
+    const slider2 = document.getElementById("car2Slider");
+    const label1 = document.getElementById("c1Val");
+    const label2 = document.getElementById("c2Val");
+    const autoBtn = document.getElementById("autoBtn");
 
-    let car1Progress = 0; 
-    let car2Progress = 0; 
-    const speed = 0.0035;
+    let isAutoRunning = false;
+    let autoInterval = null;
 
-    // Web Audio Context for Horn Sound
+    // Road Dimensions & Lane Radii
+    const centerX = 230;
+    const centerY = 240;
+    const roadWidth = 120; // Complete road width
+    const outerRadius = 175;
+    const innerRadius = 55;
+
+    // Perfect Center of Lanes (Road ke theek beech mein chalne ke liye)
+    const laneLeftRadius = 135;  // Inner lane center (Left side up, curve, exit)
+    const laneRightRadius = 95;  // Outer/Inner reciprocal lane center
+
+    // Web Audio Horn
     let audioCtx = null;
     let osc = null;
     let gainNode = null;
@@ -131,293 +158,306 @@
       }
     }
 
-    function startHorn() {
-      if (!audioCtx || osc) return;
-      osc = audioCtx.createOscillator();
-      gainNode = audioCtx.createGain();
-
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
-      gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
-
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      osc.start();
-    }
-
-    function stopHorn() {
-      if (osc) {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch(e) {}
-        osc = null;
+    function soundAlert(play) {
+      if (play) {
+        if (!audioCtx) initAudio();
+        if (!osc && audioCtx) {
+          osc = audioCtx.createOscillator();
+          gainNode = audioCtx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(750, audioCtx.currentTime);
+          gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          osc.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          osc.start();
+        }
+      } else {
+        if (osc) {
+          try { osc.stop(); osc.disconnect(); } catch(e){}
+          osc = null;
+        }
       }
     }
 
-    function getRoadPath(progress, isLeftCar) {
+    // Exact Path Coordinate Calculation
+    function getCarPosition(progressPercent, isLeftCar) {
+      const p = progressPercent / 100;
       let x, y, angle;
+
       if (isLeftCar) {
-        if (progress < 0.4) {
-          const t = progress / 0.4;
-          x = 160;
-          y = 700 - (t * 430);
+        // Car A: Comes from bottom left (x=160), goes up, around bend, down right
+        const r = 135; // Center of Left/Outer Lane
+        const straightLen = 400; // Straight length (y: 640 to 240)
+        const curveLen = Math.PI * r;
+        const totalLen = (straightLen * 2) + curveLen;
+
+        const currentDist = p * totalLen;
+
+        if (currentDist <= straightLen) {
+          // Bottom-left straight going UP
+          x = centerX - r;
+          y = 640 - currentDist;
           angle = -Math.PI / 2;
-        } else if (progress < 0.75) {
-          const t = (progress - 0.4) / 0.35;
-          const r = 90;
-          const centerX = 250;
-          const centerY = 270;
-          const currAngle = Math.PI - (t * Math.PI);
-          x = centerX + r * Math.cos(currAngle);
-          y = centerY + r * Math.sin(currAngle);
-          angle = currAngle - Math.PI / 2;
+        } else if (currentDist <= straightLen + curveLen) {
+          // Semi-circular bend at top
+          const arcDist = currentDist - straightLen;
+          const theta = Math.PI - (arcDist / r);
+          x = centerX + r * Math.cos(theta);
+          y = centerY - r * Math.sin(theta);
+          angle = -theta + Math.PI;
         } else {
-          const t = (progress - 0.75) / 0.25;
-          x = 340;
-          y = 270 + (t * 430);
+          // Right straight going DOWN
+          const afterArc = currentDist - (straightLen + curveLen);
+          x = centerX + r;
+          y = centerY + afterArc;
           angle = Math.PI / 2;
         }
       } else {
-        if (progress < 0.4) {
-          const t = progress / 0.4;
-          x = 410;
-          y = 700 - (t * 430);
+        // Car B: Comes from bottom right (x=300), goes up, around inner bend, down left
+        const r = 95; // Center of Right Lane
+        const straightLen = 400;
+        const curveLen = Math.PI * r;
+        const totalLen = (straightLen * 2) + curveLen;
+
+        const currentDist = p * totalLen;
+
+        if (currentDist <= straightLen) {
+          // Bottom-right straight going UP
+          x = centerX + r;
+          y = 640 - currentDist;
           angle = -Math.PI / 2;
-        } else if (progress < 0.75) {
-          const t = (progress - 0.4) / 0.35;
-          const r = 160;
-          const centerX = 250;
-          const centerY = 270;
-          const currAngle = t * Math.PI;
-          x = centerX + r * Math.cos(currAngle);
-          y = centerY + r * Math.sin(currAngle);
-          angle = currAngle + Math.PI / 2;
+        } else if (currentDist <= straightLen + curveLen) {
+          // Semi-circular bend counter-clockwise
+          const arcDist = currentDist - straightLen;
+          const theta = arcDist / r;
+          x = centerX + r * Math.cos(theta);
+          y = centerY - r * Math.sin(theta);
+          angle = -theta;
         } else {
-          const t = (progress - 0.75) / 0.25;
-          x = 90;
-          y = 270 + (t * 430);
+          // Left straight going DOWN
+          const afterArc = currentDist - (straightLen + curveLen);
+          x = centerX - r;
+          y = centerY + afterArc;
           angle = Math.PI / 2;
         }
       }
       return { x, y, angle };
     }
 
-    // Function to draw Dual Light Post (Red + Green light setup)
-    function drawDualLightPole(x, y, isRedActive, blinkState) {
-      // Pole stand
+    // Traffic Signal Post Function
+    function drawSignalLight(x, y, isRed) {
+      // Stand
       ctx.fillStyle = "#222";
-      ctx.fillRect(x - 3, y, 6, 45);
+      ctx.fillRect(x - 3, y - 10, 6, 40);
 
-      // Light housing box
+      // Light Box
       ctx.fillStyle = "#111";
-      ctx.strokeStyle = "#555";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#444";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x - 14, y - 48, 28, 52, 6);
+      ctx.roundRect(x - 14, y - 55, 28, 50, 6);
       ctx.fill();
       ctx.stroke();
 
-      // Top Bulb: RED LIGHT
+      // RED Bulb
       ctx.beginPath();
-      ctx.arc(x, y - 35, 8, 0, Math.PI * 2);
-      if (isRedActive && blinkState) {
-        ctx.fillStyle = "#ff1744"; // Glow Red
+      ctx.arc(x, y - 42, 8, 0, Math.PI * 2);
+      ctx.fillStyle = isRed ? "#ff1744" : "#450000";
+      if (isRed) {
         ctx.shadowColor = "#ff1744";
         ctx.shadowBlur = 15;
-      } else {
-        ctx.fillStyle = "#4a0000"; // Off/Dim Red
-        ctx.shadowBlur = 0;
       }
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Bottom Bulb: GREEN LIGHT
+      // GREEN Bulb
       ctx.beginPath();
-      ctx.arc(x, y - 12, 8, 0, Math.PI * 2);
-      if (!isRedActive) {
-        ctx.fillStyle = "#00e676"; // Bright Green
+      ctx.arc(x, y - 20, 8, 0, Math.PI * 2);
+      ctx.fillStyle = !isRed ? "#00e676" : "#003a15";
+      if (!isRed) {
         ctx.shadowColor = "#00e676";
         ctx.shadowBlur = 12;
-      } else {
-        ctx.fillStyle = "#003311"; // Off/Dim Green
-        ctx.shadowBlur = 0;
       }
       ctx.fill();
       ctx.shadowBlur = 0;
     }
 
-    function drawScene() {
-      // Muddy ground
-      ctx.fillStyle = "#3a200d";
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Mud / Mountain Background
+      ctx.fillStyle = "#331a0e";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Hill shapes
-      ctx.fillStyle = "#5c3317";
+      // Mountain slopes
+      ctx.fillStyle = "#4a2815";
       ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(130, 0); ctx.lineTo(100, 300); ctx.lineTo(0, 550);
+      ctx.moveTo(0, 0); ctx.lineTo(60, 0); ctx.lineTo(40, 240); ctx.lineTo(0, 500);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(460, 0); ctx.lineTo(400, 0); ctx.lineTo(420, 240); ctx.lineTo(460, 500);
       ctx.fill();
 
+      // Middle Hill / Divider
+      ctx.fillStyle = "#3d1f10";
       ctx.beginPath();
-      ctx.moveTo(500, 0); ctx.lineTo(370, 0); ctx.lineTo(400, 300); ctx.lineTo(500, 550);
-      ctx.fill();
-
-      // Middle Hill
-      ctx.fillStyle = "#4a270f";
-      ctx.beginPath();
-      ctx.moveTo(215, 270);
-      ctx.quadraticCurveTo(250, 160, 285, 270);
-      ctx.lineTo(285, 600); ctx.lineTo(215, 600);
+      ctx.arc(centerX, centerY, innerRadius, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerRadius, 640);
+      ctx.lineTo(centerX - innerRadius, 640);
       ctx.closePath();
       ctx.fill();
 
-      // Foliage/Bushes
-      const foliage = [[30, 80], [90, 100], [250, 120], [430, 90], [470, 260], [80, 410], [420, 420]];
-      foliage.forEach(pos => {
-        ctx.fillStyle = "#1e4d2b";
-        ctx.beginPath(); ctx.arc(pos[0], pos[1], 15, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#ffd54f";
-        ctx.beginPath(); ctx.arc(pos[0] + 5, pos[1] - 3, 7, 0, Math.PI*2); ctx.fill();
-      });
-
-      // Road Surface
-      ctx.strokeStyle = "#1b1b1b";
-      ctx.lineWidth = 100;
+      // 2. Main Pitch Black Road Surface
+      ctx.fillStyle = "#1c1c1c";
       ctx.beginPath();
-      ctx.moveTo(90, 700); ctx.lineTo(90, 270);
-      ctx.arc(250, 270, 160, Math.PI, 0, false);
-      ctx.lineTo(410, 270); ctx.lineTo(410, 700);
-      ctx.stroke();
+      ctx.arc(centerX, centerY, outerRadius, Math.PI, 0, false);
+      ctx.lineTo(centerX + outerRadius, 640);
+      ctx.lineTo(centerX - outerRadius, 640);
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.lineWidth = 60;
+      // Cut out the inner hill to make accurate U-shape
+      ctx.fillStyle = "#3d1f10";
       ctx.beginPath();
-      ctx.moveTo(160, 700); ctx.lineTo(160, 270);
-      ctx.arc(250, 270, 90, Math.PI, 0, false);
-      ctx.lineTo(340, 270); ctx.lineTo(340, 700);
-      ctx.stroke();
+      ctx.arc(centerX, centerY, innerRadius, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerRadius, 640);
+      ctx.lineTo(centerX - innerRadius, 640);
+      ctx.closePath();
+      ctx.fill();
 
-      // Zebra Borders
+      // 3. Black & White Zebra Border Striping
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 6;
-      ctx.setLineDash([12, 12]);
+      ctx.setLineDash([12, 10]);
       ctx.beginPath();
-      ctx.arc(250, 270, 205, Math.PI, 0, false);
+      ctx.arc(centerX, centerY, outerRadius, Math.PI, 0, false);
+      ctx.lineTo(centerX + outerRadius, 640);
+      ctx.moveTo(centerX - outerRadius, 240);
+      ctx.lineTo(centerX - outerRadius, 640);
       ctx.stroke();
 
       ctx.strokeStyle = "#000000";
       ctx.beginPath();
-      ctx.arc(250, 270, 52, Math.PI, 0, false);
+      ctx.arc(centerX, centerY, innerRadius + 2, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerRadius + 2, 640);
+      ctx.moveTo(centerX - innerRadius - 2, 240);
+      ctx.lineTo(centerX - innerRadius - 2, 640);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Road Lane Dividing Lines
+      // 4. Center Lane Dividing Dashed Line
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;
-      ctx.setLineDash([18, 18]);
+      ctx.setLineDash([16, 14]);
+      const midRadius = (outerRadius + innerRadius) / 2; // 115
       ctx.beginPath();
-      ctx.moveTo(160, 700); ctx.lineTo(160, 270);
-      ctx.arc(250, 270, 90, Math.PI, 0, false);
-      ctx.lineTo(340, 270); ctx.lineTo(340, 700);
+      ctx.arc(centerX, centerY, midRadius, Math.PI, 0, false);
+      ctx.moveTo(centerX - midRadius, 240);
+      ctx.lineTo(centerX - midRadius, 640);
+      ctx.moveTo(centerX + midRadius, 240);
+      ctx.lineTo(centerX + midRadius, 640);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 9V Battery Packs on Bottom Left
-      const batX = 110, batY = 600;
+      // 5. Battery Packs representation at bottom-left
       for (let i = 0; i < 3; i++) {
-        const offset = i * 28;
-        ctx.fillStyle = "#37474f";
-        ctx.fillRect(batX + offset, batY, 22, 38);
-        ctx.fillStyle = "#eceff1";
-        ctx.fillRect(batX + offset + 3, batY - 4, 6, 4);
-        ctx.fillRect(batX + offset + 13, batY - 4, 6, 4);
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "8px sans-serif";
-        ctx.fillText("HYW", batX + offset + 2, batY + 16);
+        const bx = 78 + (i * 24), by = 550;
+        ctx.fillStyle = "#2c3e50";
+        ctx.fillRect(bx, by, 18, 30);
+        ctx.fillStyle = "#eee";
+        ctx.fillRect(bx + 2, by - 3, 4, 3);
+        ctx.fillRect(bx + 11, by - 3, 4, 3);
+        ctx.fillStyle = "#fff";
+        ctx.font = "7px sans-serif";
+        ctx.fillText("HYW", bx + 1, by + 14);
       }
 
-      // Car Positions
-      const carA = getRoadPath(car1Progress, true);
-      const carB = getRoadPath(car2Progress, false);
+      // Calculate Car Coordinates
+      const pos1 = getCarPosition(slider1.value, true);
+      const pos2 = getCarPosition(slider2.value, false);
 
-      // Car A (Cyan/Blue)
+      // Draw Car A (Cyan Blue)
       ctx.save();
-      ctx.translate(carA.x, carA.y);
-      ctx.rotate(carA.angle);
+      ctx.translate(pos1.x, pos1.y);
+      ctx.rotate(pos1.angle);
       ctx.fillStyle = "#00bcd4";
       ctx.fillRect(-10, -18, 20, 36);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(-8, -12, 16, 6);
+      ctx.fillStyle = "#ffffff"; // Windshield
+      ctx.fillRect(-8, -11, 16, 6);
+      ctx.fillStyle = "#ffeb3b"; // Headlights
+      ctx.fillRect(-8, -19, 4, 2);
+      ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Car B (Orange)
+      // Draw Car B (Orange)
       ctx.save();
-      ctx.translate(carB.x, carB.y);
-      ctx.rotate(carB.angle);
+      ctx.translate(pos2.x, pos2.y);
+      ctx.rotate(pos2.angle);
       ctx.fillStyle = "#ff9800";
       ctx.fillRect(-10, -18, 20, 36);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(-8, -12, 16, 6);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(-8, -11, 16, 6);
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillRect(-8, -19, 4, 2);
+      ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Alert Logic: Jab dono cars curve ke pass aati hain
-      alertActive = (car1Progress > 0.28 && car1Progress < 0.8 && car2Progress > 0.28 && car2Progress < 0.8);
-      const blink = Math.floor(Date.now() / 150) % 2 === 0;
+      // Danger Condition: Both cars approaching or present in the upper curve
+      const p1 = Number(slider1.value);
+      const p2 = Number(slider2.value);
+      const isDanger = (p1 >= 35 && p1 <= 75) && (p2 >= 35 && p2 <= 75);
 
-      // Sound trigger
-      if (alertActive && isRunning) {
-        if (blink) startHorn();
-        else stopHorn();
-      } else {
-        stopHorn();
-      }
+      // Play alert buzzer sound
+      soundAlert(isDanger);
 
-      // DONO SIDE LIGHTS:
-      // Left Road Light Pole (X: 30, Y: 290)
-      drawDualLightPole(35, 290, alertActive && isRunning, blink);
+      // Draw Left and Right Side Signal Posts
+      drawSignalLight(32, 260, isDanger);
+      drawSignalLight(428, 260, isDanger);
 
-      // Right Road Light Pole (X: 465, Y: 290)
-      drawDualLightPole(465, 290, alertActive && isRunning, blink);
-
-      // Alert banner message
-      if (alertActive && isRunning) {
+      // Alert Warning text banner
+      if (isDanger) {
         ctx.fillStyle = "#ff1744";
-        ctx.font = "bold 15px 'Segoe UI'";
-        ctx.fillText("🚨 RED LIGHT & HORN ON: STOP / SLOW DOWN! 🚨", 250, 50);
+        ctx.font = "bold 15px sans-serif";
+        ctx.fillText("🚨 RED ALERT: HORN ON! 🚨", centerX, 40);
       }
     }
 
-    function update() {
-      if (!isRunning) return;
-
-      if (car1Progress < 1.0) car1Progress += speed;
-      else car1Progress = 0;
-
-      if (car2Progress < 1.0) car2Progress += speed;
-      else car2Progress = 0;
-
-      drawScene();
-      animId = requestAnimationFrame(update);
+    function manualUpdate() {
+      label1.innerText = slider1.value + "%";
+      label2.innerText = slider2.value + "%";
+      render();
     }
 
-    function startSimulation() {
+    function toggleAuto() {
       initAudio();
-      if (!isRunning) {
-        isRunning = true;
-        update();
+      if (!isAutoRunning) {
+        isAutoRunning = true;
+        autoBtn.innerText = "Pause";
+        autoBtn.style.background = "#ff9800";
+        autoInterval = setInterval(() => {
+          slider1.value = (Number(slider1.value) + 1) % 100;
+          slider2.value = (Number(slider2.value) + 1) % 100;
+          manualUpdate();
+        }, 50);
+      } else {
+        isAutoRunning = false;
+        autoBtn.innerText = "Auto Run";
+        autoBtn.style.background = "#4caf50";
+        clearInterval(autoInterval);
+        soundAlert(false);
       }
     }
 
-    function resetSimulation() {
-      isRunning = false;
-      cancelAnimationFrame(animId);
-      stopHorn();
-      car1Progress = 0;
-      car2Progress = 0;
-      alertActive = false;
-      drawScene();
+    function resetControls() {
+      if (isAutoRunning) toggleAuto();
+      slider1.value = 10;
+      slider2.value = 10;
+      manualUpdate();
+      soundAlert(false);
     }
 
-    drawScene();
+    // Initial load
+    manualUpdate();
   </script>
 </body>
 </html>

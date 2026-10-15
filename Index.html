@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hilly U-Shape Road Accident Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a24;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      margin: 0 0 10px 0;
+    }
+    p {
+      color: #aaa;
+      margin-bottom: 15px;
+    }
+    #canvas-container {
+      position: relative;
+      border: 3px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    canvas {
+      display: block;
+      background: #2d5a27; /* पहाड़ी हरियाली */
+    }
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #e63946;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #c1121f;
+    }
+    .legend {
+      margin-top: 15px;
+      font-size: 14px;
+      display: flex;
+      gap: 20px;
+    }
+    .badge {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>पहाड़ी U-टर्न (Hairpin Bend) एक्सीडेंट सिमुलेशन</h2>
+  <p>ओवर-स्पीडिंग के कारण मोड़ पर सेंट्रीफ्यूगल फ़ोर्स से गाड़ी खाई में फिसलती है।</p>
+
+  <div id="canvas-container">
+    <canvas id="roadCanvas" width="700" height="500"></canvas>
+  </div>
+
+  <div class="controls">
+    <button onclick="startSimulation()">Simulate Run</button>
+    <button onclick="resetSimulation()" style="background: #457b9d;">Reset</button>
+  </div>
+
+  <div class="legend">
+    <span><span class="badge" style="background: #3a86ff;"></span>सुरक्षित कार (नियंत्रित गति)</span>
+    <span><span class="badge" style="background: #e63946;"></span>दुर्घटनाग्रस्त कार (ओवर-स्पीड)</span>
+    <span><span class="badge" style="background: #8b5a2b;"></span>खाई / Cliff</span>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("roadCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let animationId;
+    let isRunning = false;
+
+    // सिमुलेशन स्थिति
+    let blueCar = { t: 0, speed: 0.0035, crashed: false };
+    let redCar = { t: 0, speed: 0.0075, crashed: false, x: 0, y: 0, vx: 0, vy: 0 };
+
+    // U-Turn Road Curve Points (Bézier / Spline representation)
+    function getRoadPoint(t) {
+      // U-turn path
+      const p0 = { x: 150, y: 50 };
+      const p1 = { x: 150, y: 380 };
+      const p2 = { x: 550, y: 380 };
+      const p3 = { x: 550, y: 50 };
+
+      // Cubic Bezier curve
+      const u = 1 - t;
+      const tt = t * t;
+      const uu = u * u;
+      const uuu = uu * u;
+      const ttt = tt * t;
+
+      const x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
+      const y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
+      return { x, y };
+    }
+
+    // ड्रॉ बैकग्राउंड और लैंडस्केप
+    function drawTerrain() {
+      // पहाड़ी ढलान और चट्टान (खाई)
+      ctx.fillStyle = "#8b5a2b"; // Cliff / Rock
+      ctx.beginPath();
+      ctx.arc(350, 480, 220, 0, Math.PI, true);
+      ctx.fill();
+
+      // आंतरिक पहाड़ी क्षेत्र
+      ctx.fillStyle = "#1e3f20";
+      ctx.beginPath();
+      ctx.arc(350, 200, 110, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // U-Road ड्रा करना
+    function drawRoad() {
+      // सड़क की चौड़ाई
+      ctx.lineWidth = 55;
+      ctx.strokeStyle = "#333339";
+      ctx.lineCap = "round";
+
+      ctx.beginPath();
+      for (let t = 0; t <= 1; t += 0.01) {
+        let pt = getRoadPoint(t);
+        if (t === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+
+      // डिवाइडर लाइन (सफेद बिंदीदार)
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#ffffff";
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      for (let t = 0; t <= 1; t += 0.01) {
+        let pt = getRoadPoint(t);
+        if (t === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+
+      // चेतावनी साइन (Hairpin Bend)
+      ctx.fillStyle = "#ffb703";
+      ctx.beginPath();
+      ctx.arc(350, 435, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("⚠️", 342, 440);
+    }
+
+    // कार ड्रा करना
+    function drawVehicle(x, y, color, angle, text = "") {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      // गाड़ी का बेस
+      ctx.fillStyle = color;
+      ctx.fillRect(-12, -7, 24, 14);
+
+      // विंडशील्ड
+      ctx.fillStyle = "#caf0f8";
+      ctx.fillRect(0, -5, 6, 10);
+
+      ctx.restore();
+
+      if (text) {
+        ctx.fillStyle = "#ff4d4d";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(text, x - 25, y - 16);
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawTerrain();
+      drawRoad();
+
+      // 1. सुरक्षित नीली कार
+      if (blueCar.t <= 1) {
+        let pt = getRoadPoint(blueCar.t);
+        let nextPt = getRoadPoint(Math.min(1, blueCar.t + 0.01));
+        let angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
+        drawVehicle(pt.x - 8, pt.y, "#3a86ff", angle);
+      }
+
+      // 2. लाल कार (ओवर-स्पीड एक्सीडेंट)
+      if (!redCar.crashed) {
+        let pt = getRoadPoint(redCar.t);
+        let nextPt = getRoadPoint(Math.min(1, redCar.t + 0.01));
+        let angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
+
+        // तीव्र मोड़ पर (t > 0.46) टर्न न ले पाने के कारण खाई की ओर फिसलना
+        if (redCar.t >= 0.46) {
+          redCar.crashed = true;
+          redCar.x = pt.x;
+          redCar.y = pt.y;
+          // स्पर्शरेखीय दिशा (Tangential momentum) में बाहर निकल जाना
+          redCar.vx = (nextPt.x - pt.x) * 1.5;
+          redCar.vy = Math.abs(nextPt.y - pt.y) * 2.2 + 2; 
+        } else {
+          drawVehicle(pt.x + 8, pt.y, "#e63946", angle);
+        }
+      } else {
+        // खाई में गिरना
+        redCar.x += redCar.vx;
+        redCar.y += redCar.vy;
+        redCar.vy += 0.08; // ढलान पर गुरुत्वाकर्षण
+
+        drawVehicle(redCar.x, redCar.y, "#e63946", Math.PI / 4, "CRASH!");
+      }
+    }
+
+    function update() {
+      if (!isRunning) return;
+
+      if (blueCar.t < 1) blueCar.t += blueCar.speed;
+
+      if (!redCar.crashed) {
+        redCar.t += redCar.speed;
+      }
+
+      render();
+      animationId = requestAnimationFrame(update);
+    }
+
+    function startSimulation() {
+      if (!isRunning) {
+        isRunning = true;
+        update();
+      }
+    }
+
+    function resetSimulation() {
+      isRunning = false;
+      cancelAnimationFrame(animationId);
+      blueCar = { t: 0, speed: 0.0035, crashed: false };
+      redCar = { t: 0, speed: 0.0075, crashed: false, x: 0, y: 0, vx: 0, vy: 0 };
+      render();
+    }
+
+    // पहला फ्रेम रेंडर करें
+    render();
+  </script>
+</body>
+</html>

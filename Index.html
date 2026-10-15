@@ -2,9 +2,15 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hairpin Bend Manual Car Control Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Hairpin Bend Manual Driving Simulation</title>
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
     body {
       background-color: #121212;
       color: #ffffff;
@@ -15,13 +21,13 @@
     }
     h2 {
       color: #ffeb3b;
-      font-size: 19px;
-      margin: 5px 0;
+      font-size: 18px;
+      margin: 4px 0;
     }
     p {
       color: #bbb;
-      font-size: 13px;
-      margin: 0 0 10px 0;
+      font-size: 12px;
+      margin: 0 0 8px 0;
     }
     #simCanvas {
       background-color: #2b1810;
@@ -32,53 +38,73 @@
       max-width: 100%;
       height: auto;
     }
-    .controller-box {
+    .controller-panel {
       background: #1e1e1e;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 12px;
       max-width: 440px;
-      margin: 12px auto;
+      margin: 10px auto;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
-    .slider-row {
+    .controls-grid {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 8px 0;
-      font-size: 14px;
-      font-weight: bold;
+      justify-content: space-around;
+      gap: 10px;
+      margin-bottom: 10px;
     }
-    input[type=range] {
+    .car-box {
       flex: 1;
-      margin: 0 12px;
-      height: 8px;
-      border-radius: 4px;
-      cursor: pointer;
+      background: #2a2a2a;
+      border-radius: 8px;
+      padding: 8px;
     }
-    .c1-label { color: #00e5ff; }
-    .c2-label { color: #ff9800; }
-    .btn-row {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 10px;
-    }
-    button {
-      padding: 9px 20px;
+    .btn-drive {
+      width: 100%;
+      padding: 12px 6px;
       font-size: 14px;
       font-weight: bold;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       color: white;
+      touch-action: manipulation;
     }
-    .btn-auto { background: #4caf50; }
-    .btn-reset { background: #f44336; }
+    .btn-c1 {
+      background: #00bcd4;
+    }
+    .btn-c1:active {
+      background: #00838f;
+    }
+    .btn-c2 {
+      background: #ff9800;
+    }
+    .btn-c2:active {
+      background: #e65100;
+    }
+    input[type=range] {
+      width: 100%;
+      margin-top: 8px;
+      height: 6px;
+    }
+    .action-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    .btn-reset {
+      background: #f44336;
+      padding: 8px 24px;
+      font-weight: bold;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
     .legend {
       display: flex;
       justify-content: center;
-      gap: 15px;
-      font-size: 12px;
+      gap: 12px;
+      font-size: 11px;
       margin-top: 8px;
     }
     .dot {
@@ -86,68 +112,64 @@
       height: 10px;
       border-radius: 50%;
       display: inline-block;
-      margin-right: 5px;
+      margin-right: 4px;
     }
   </style>
 </head>
 <body>
 
-  <h2>पहाड़ी U-टर्न (Hairpin Bend) सिमुलेशन</h2>
-  <p>नीचे दिए गए स्लाइडर्स से दोनों कार को खुद चलाकर टेस्ट करें</p>
+  <h2>पहाड़ी U-टर्न (Hairpin Bend) ड्राइविंग सिमुलेशन</h2>
+  <p>बटन को दबाकर रखें (Hold karein) car ko aage chalane ke liye</p>
 
-  <canvas id="simCanvas" width="460" height="640"></canvas>
+  <canvas id="simCanvas" width="460" height="620"></canvas>
 
-  <div class="controller-box">
-    <!-- Manual Controller for Car A -->
-    <div class="slider-row">
-      <span class="c1-label">कार A (बाएं)</span>
-      <input type="range" id="car1Slider" min="0" max="100" value="10" oninput="manualUpdate()">
-      <span id="c1Val">10%</span>
+  <div class="controller-panel">
+    <div class="controls-grid">
+      <!-- Car A Control -->
+      <div class="car-box">
+        <button class="btn-drive btn-c1" id="btnDriveA">🚗 Drive Car A<br><small>(Daba kar rakhein)</small></button>
+        <input type="range" id="sliderA" min="0" max="100" value="0">
+      </div>
+
+      <!-- Car B Control -->
+      <div class="car-box">
+        <button class="btn-drive btn-c2" id="btnDriveB">🚗 Drive Car B<br><small>(Daba kar rakhein)</small></button>
+        <input type="range" id="sliderB" min="0" max="100" value="0">
+      </div>
     </div>
 
-    <!-- Manual Controller for Car B -->
-    <div class="slider-row">
-      <span class="c2-label">कार B (दाएं)</span>
-      <input type="range" id="car2Slider" min="0" max="100" value="10" oninput="manualUpdate()">
-      <span id="c2Val">10%</span>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-auto" id="autoBtn" onclick="toggleAuto()">Auto Run</button>
-      <button class="btn-reset" onclick="resetControls()">Reset</button>
+    <div class="action-row">
+      <button class="btn-reset" onclick="resetAll()">Reset (Shuru Se)</button>
     </div>
   </div>
 
   <div class="legend">
-    <div><span class="dot" style="background:#00e676;"></span>ग्रीन लाइट: रास्ता सुरक्षित</div>
-    <div><span class="dot" style="background:#ff1744;"></span>रेड लाइट + हॉर्न: मोड पर खतरा</div>
+    <div><span class="dot" style="background:#00e676;"></span>Green Light: Road Clear</div>
+    <div><span class="dot" style="background:#ff1744;"></span>Red Light + Horn: Danger Ahead</div>
   </div>
 
   <script>
     const canvas = document.getElementById("simCanvas");
     const ctx = canvas.getContext("2d");
 
-    const slider1 = document.getElementById("car1Slider");
-    const slider2 = document.getElementById("car2Slider");
-    const label1 = document.getElementById("c1Val");
-    const label2 = document.getElementById("c2Val");
-    const autoBtn = document.getElementById("autoBtn");
+    const sliderA = document.getElementById("sliderA");
+    const sliderB = document.getElementById("sliderB");
+    const btnA = document.getElementById("btnDriveA");
+    const btnB = document.getElementById("btnDriveB");
 
-    let isAutoRunning = false;
-    let autoInterval = null;
+    let driveAActive = false;
+    let driveBActive = false;
 
-    // Road Dimensions & Lane Radii
+    // Road Dimensions
     const centerX = 230;
-    const centerY = 240;
-    const roadWidth = 120; // Complete road width
-    const outerRadius = 175;
-    const innerRadius = 55;
+    const centerY = 230;
+    const outerR = 175;
+    const innerR = 55;
+    const laneA_R = 135; // Center of Left Outer Lane
+    const laneB_R = 95;  // Center of Right Inner Lane
+    const straightHeight = 390;
 
-    // Perfect Center of Lanes (Road ke theek beech mein chalne ke liye)
-    const laneLeftRadius = 135;  // Inner lane center (Left side up, curve, exit)
-    const laneRightRadius = 95;  // Outer/Inner reciprocal lane center
-
-    // Web Audio Horn
+    // Web Audio API for Real Buzzer/Horn
     let audioCtx = null;
     let osc = null;
     let gainNode = null;
@@ -160,7 +182,7 @@
 
     function soundAlert(play) {
       if (play) {
-        if (!audioCtx) initAudio();
+        initAudio();
         if (!osc && audioCtx) {
           osc = audioCtx.createOscillator();
           gainNode = audioCtx.createGain();
@@ -179,78 +201,65 @@
       }
     }
 
-    // Exact Path Coordinate Calculation
-    function getCarPosition(progressPercent, isLeftCar) {
-      const p = progressPercent / 100;
+    // Lane Positioning Calculations
+    function getCarCoords(percent, isLeftCar) {
+      const p = percent / 100;
       let x, y, angle;
 
       if (isLeftCar) {
-        // Car A: Comes from bottom left (x=160), goes up, around bend, down right
-        const r = 135; // Center of Left/Outer Lane
-        const straightLen = 400; // Straight length (y: 640 to 240)
-        const curveLen = Math.PI * r;
-        const totalLen = (straightLen * 2) + curveLen;
+        // Car A: Bottom-left (x=95) -> Up -> Curve -> Down (x=365)
+        const r = laneA_R;
+        const total = (straightHeight * 2) + (Math.PI * r);
+        const curr = p * total;
 
-        const currentDist = p * totalLen;
-
-        if (currentDist <= straightLen) {
-          // Bottom-left straight going UP
+        if (curr <= straightHeight) {
           x = centerX - r;
-          y = 640 - currentDist;
+          y = 620 - curr;
           angle = -Math.PI / 2;
-        } else if (currentDist <= straightLen + curveLen) {
-          // Semi-circular bend at top
-          const arcDist = currentDist - straightLen;
-          const theta = Math.PI - (arcDist / r);
+        } else if (curr <= straightHeight + (Math.PI * r)) {
+          const arcD = curr - straightHeight;
+          const theta = Math.PI - (arcD / r);
           x = centerX + r * Math.cos(theta);
           y = centerY - r * Math.sin(theta);
           angle = -theta + Math.PI;
         } else {
-          // Right straight going DOWN
-          const afterArc = currentDist - (straightLen + curveLen);
+          const rem = curr - (straightHeight + (Math.PI * r));
           x = centerX + r;
-          y = centerY + afterArc;
+          y = centerY + rem;
           angle = Math.PI / 2;
         }
       } else {
-        // Car B: Comes from bottom right (x=300), goes up, around inner bend, down left
-        const r = 95; // Center of Right Lane
-        const straightLen = 400;
-        const curveLen = Math.PI * r;
-        const totalLen = (straightLen * 2) + curveLen;
+        // Car B: Bottom-right (x=325) -> Up -> Curve -> Down (x=135)
+        const r = laneB_R;
+        const total = (straightHeight * 2) + (Math.PI * r);
+        const curr = p * total;
 
-        const currentDist = p * totalLen;
-
-        if (currentDist <= straightLen) {
-          // Bottom-right straight going UP
+        if (curr <= straightHeight) {
           x = centerX + r;
-          y = 640 - currentDist;
+          y = 620 - curr;
           angle = -Math.PI / 2;
-        } else if (currentDist <= straightLen + curveLen) {
-          // Semi-circular bend counter-clockwise
-          const arcDist = currentDist - straightLen;
-          const theta = arcDist / r;
+        } else if (curr <= straightHeight + (Math.PI * r)) {
+          const arcD = curr - straightHeight;
+          const theta = arcD / r;
           x = centerX + r * Math.cos(theta);
           y = centerY - r * Math.sin(theta);
           angle = -theta;
         } else {
-          // Left straight going DOWN
-          const afterArc = currentDist - (straightLen + curveLen);
+          const rem = curr - (straightHeight + (Math.PI * r));
           x = centerX - r;
-          y = centerY + afterArc;
+          y = centerY + rem;
           angle = Math.PI / 2;
         }
       }
       return { x, y, angle };
     }
 
-    // Traffic Signal Post Function
     function drawSignalLight(x, y, isRed) {
       // Stand
       ctx.fillStyle = "#222";
       ctx.fillRect(x - 3, y - 10, 6, 40);
 
-      // Light Box
+      // Housing Box
       ctx.fillStyle = "#111";
       ctx.strokeStyle = "#444";
       ctx.lineWidth = 2;
@@ -259,7 +268,7 @@
       ctx.fill();
       ctx.stroke();
 
-      // RED Bulb
+      // Red Bulb
       ctx.beginPath();
       ctx.arc(x, y - 42, 8, 0, Math.PI * 2);
       ctx.fillStyle = isRed ? "#ff1744" : "#450000";
@@ -270,7 +279,7 @@
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // GREEN Bulb
+      // Green Bulb
       ctx.beginPath();
       ctx.arc(x, y - 20, 8, 0, Math.PI * 2);
       ctx.fillStyle = !isRed ? "#00e676" : "#003a15";
@@ -285,81 +294,79 @@
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Mud / Mountain Background
+      // Background Mud Terrain
       ctx.fillStyle = "#331a0e";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Mountain slopes
+      // Mountains
       ctx.fillStyle = "#4a2815";
       ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(60, 0); ctx.lineTo(40, 240); ctx.lineTo(0, 500);
-      ctx.fill();
+      ctx.moveTo(0, 0); ctx.lineTo(60, 0); ctx.lineTo(40, 240); ctx.lineTo(0, 500); ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(460, 0); ctx.lineTo(400, 0); ctx.lineTo(420, 240); ctx.lineTo(460, 500);
-      ctx.fill();
+      ctx.moveTo(460, 0); ctx.lineTo(400, 0); ctx.lineTo(420, 240); ctx.lineTo(460, 500); ctx.fill();
 
-      // Middle Hill / Divider
+      // Center Hill Divider
       ctx.fillStyle = "#3d1f10";
       ctx.beginPath();
-      ctx.arc(centerX, centerY, innerRadius, Math.PI, 0, false);
-      ctx.lineTo(centerX + innerRadius, 640);
-      ctx.lineTo(centerX - innerRadius, 640);
+      ctx.arc(centerX, centerY, innerR, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerR, 620);
+      ctx.lineTo(centerX - innerR, 620);
       ctx.closePath();
       ctx.fill();
 
-      // 2. Main Pitch Black Road Surface
+      // Main Road
       ctx.fillStyle = "#1c1c1c";
       ctx.beginPath();
-      ctx.arc(centerX, centerY, outerRadius, Math.PI, 0, false);
-      ctx.lineTo(centerX + outerRadius, 640);
-      ctx.lineTo(centerX - outerRadius, 640);
+      ctx.arc(centerX, centerY, outerR, Math.PI, 0, false);
+      ctx.lineTo(centerX + outerR, 620);
+      ctx.lineTo(centerX - outerR, 620);
       ctx.closePath();
       ctx.fill();
 
-      // Cut out the inner hill to make accurate U-shape
+      // Cut inner hill out
       ctx.fillStyle = "#3d1f10";
       ctx.beginPath();
-      ctx.arc(centerX, centerY, innerRadius, Math.PI, 0, false);
-      ctx.lineTo(centerX + innerRadius, 640);
-      ctx.lineTo(centerX - innerRadius, 640);
+      ctx.arc(centerX, centerY, innerR, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerR, 620);
+      ctx.lineTo(centerX - innerR, 620);
       ctx.closePath();
       ctx.fill();
 
-      // 3. Black & White Zebra Border Striping
+      // Outer Zebra Borders
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 6;
       ctx.setLineDash([12, 10]);
       ctx.beginPath();
-      ctx.arc(centerX, centerY, outerRadius, Math.PI, 0, false);
-      ctx.lineTo(centerX + outerRadius, 640);
-      ctx.moveTo(centerX - outerRadius, 240);
-      ctx.lineTo(centerX - outerRadius, 640);
+      ctx.arc(centerX, centerY, outerR, Math.PI, 0, false);
+      ctx.lineTo(centerX + outerR, 620);
+      ctx.moveTo(centerX - outerR, centerY);
+      ctx.lineTo(centerX - outerR, 620);
       ctx.stroke();
 
       ctx.strokeStyle = "#000000";
       ctx.beginPath();
-      ctx.arc(centerX, centerY, innerRadius + 2, Math.PI, 0, false);
-      ctx.lineTo(centerX + innerRadius + 2, 640);
-      ctx.moveTo(centerX - innerRadius - 2, 240);
-      ctx.lineTo(centerX - innerRadius - 2, 640);
+      ctx.arc(centerX, centerY, innerR + 2, Math.PI, 0, false);
+      ctx.lineTo(centerX + innerR + 2, 620);
+      ctx.moveTo(centerX - innerR - 2, centerY);
+      ctx.lineTo(centerX - innerR - 2, 620);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 4. Center Lane Dividing Dashed Line
+      // Lane Divider Dashes
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2.5;
       ctx.setLineDash([16, 14]);
-      const midRadius = (outerRadius + innerRadius) / 2; // 115
+      const midR = (outerR + innerR) / 2;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, midRadius, Math.PI, 0, false);
-      ctx.moveTo(centerX - midRadius, 240);
-      ctx.lineTo(centerX - midRadius, 640);
-      ctx.moveTo(centerX + midRadius, 240);
-      ctx.lineTo(centerX + midRadius, 640);
+      ctx.arc(centerX, centerY, midR, Math.PI, 0, false);
+      ctx.moveTo(centerX - midR, centerY);
+      ctx.lineTo(centerX - midR, 620);
+      ctx.moveTo(centerX + midR, centerY);
+      ctx.lineTo(centerX + midR, 620);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 5. Battery Packs representation at bottom-left
+      // 9V Battery Packs at bottom left
       for (let i = 0; i < 3; i++) {
         const bx = 78 + (i * 24), by = 550;
         ctx.fillStyle = "#2c3e50";
@@ -372,27 +379,35 @@
         ctx.fillText("HYW", bx + 1, by + 14);
       }
 
-      // Calculate Car Coordinates
-      const pos1 = getCarPosition(slider1.value, true);
-      const pos2 = getCarPosition(slider2.value, false);
+      // Smooth Increment when buttons are held
+      if (driveAActive) {
+        sliderA.value = (parseFloat(sliderA.value) + 0.45) % 100;
+      }
+      if (driveBActive) {
+        sliderB.value = (parseFloat(sliderB.value) + 0.45) % 100;
+      }
 
-      // Draw Car A (Cyan Blue)
+      // Positions
+      const posA = getCarCoords(sliderA.value, true);
+      const posB = getCarCoords(sliderB.value, false);
+
+      // Car A (Cyan Blue)
       ctx.save();
-      ctx.translate(pos1.x, pos1.y);
-      ctx.rotate(pos1.angle);
+      ctx.translate(posA.x, posA.y);
+      ctx.rotate(posA.angle);
       ctx.fillStyle = "#00bcd4";
       ctx.fillRect(-10, -18, 20, 36);
-      ctx.fillStyle = "#ffffff"; // Windshield
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(-8, -11, 16, 6);
-      ctx.fillStyle = "#ffeb3b"; // Headlights
+      ctx.fillStyle = "#ffeb3b";
       ctx.fillRect(-8, -19, 4, 2);
       ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Draw Car B (Orange)
+      // Car B (Orange)
       ctx.save();
-      ctx.translate(pos2.x, pos2.y);
-      ctx.rotate(pos2.angle);
+      ctx.translate(posB.x, posB.y);
+      ctx.rotate(posB.angle);
       ctx.fillStyle = "#ff9800";
       ctx.fillRect(-10, -18, 20, 36);
       ctx.fillStyle = "#ffffff";
@@ -402,62 +417,47 @@
       ctx.fillRect(4, -19, 4, 2);
       ctx.restore();
 
-      // Danger Condition: Both cars approaching or present in the upper curve
-      const p1 = Number(slider1.value);
-      const p2 = Number(slider2.value);
-      const isDanger = (p1 >= 35 && p1 <= 75) && (p2 >= 35 && p2 <= 75);
+      // Danger Logic (Both vehicles in or approaching apex curve 35% to 75%)
+      const vA = parseFloat(sliderA.value);
+      const vB = parseFloat(sliderB.value);
+      const danger = (vA >= 35 && vA <= 75) && (vB >= 35 && vB <= 75);
 
-      // Play alert buzzer sound
-      soundAlert(isDanger);
+      soundAlert(danger);
 
-      // Draw Left and Right Side Signal Posts
-      drawSignalLight(32, 260, isDanger);
-      drawSignalLight(428, 260, isDanger);
+      // Side Signal Lights
+      drawSignalLight(32, 260, danger);
+      drawSignalLight(428, 260, danger);
 
-      // Alert Warning text banner
-      if (isDanger) {
+      if (danger) {
         ctx.fillStyle = "#ff1744";
         ctx.font = "bold 15px sans-serif";
-        ctx.fillText("🚨 RED ALERT: HORN ON! 🚨", centerX, 40);
+        ctx.fillText("🚨 RED ALERT: HORN ACTIVE! 🚨", centerX, 35);
       }
+
+      requestAnimationFrame(render);
     }
 
-    function manualUpdate() {
-      label1.innerText = slider1.value + "%";
-      label2.innerText = slider2.value + "%";
-      render();
+    // Event Listeners for Touch and Mouse Hold
+    function bindDriveEvents(btn, setActive) {
+      btn.addEventListener("mousedown", (e) => { e.preventDefault(); initAudio(); setActive(true); });
+      window.addEventListener("mouseup", () => setActive(false));
+      btn.addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); setActive(true); }, {passive: false});
+      window.addEventListener("touchend", () => setActive(false));
     }
 
-    function toggleAuto() {
-      initAudio();
-      if (!isAutoRunning) {
-        isAutoRunning = true;
-        autoBtn.innerText = "Pause";
-        autoBtn.style.background = "#ff9800";
-        autoInterval = setInterval(() => {
-          slider1.value = (Number(slider1.value) + 1) % 100;
-          slider2.value = (Number(slider2.value) + 1) % 100;
-          manualUpdate();
-        }, 50);
-      } else {
-        isAutoRunning = false;
-        autoBtn.innerText = "Auto Run";
-        autoBtn.style.background = "#4caf50";
-        clearInterval(autoInterval);
-        soundAlert(false);
-      }
-    }
+    bindDriveEvents(btnA, (v) => driveAActive = v);
+    bindDriveEvents(btnB, (v) => driveBActive = v);
 
-    function resetControls() {
-      if (isAutoRunning) toggleAuto();
-      slider1.value = 10;
-      slider2.value = 10;
-      manualUpdate();
+    function resetAll() {
+      sliderA.value = 0;
+      sliderB.value = 0;
+      driveAActive = false;
+      driveBActive = false;
       soundAlert(false);
     }
 
-    // Initial load
-    manualUpdate();
+    // Run render loop
+    requestAnimationFrame(render);
   </script>
 </body>
 </html>
